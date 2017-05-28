@@ -33,57 +33,81 @@
 (add-hook 'js2-mode-hook 'activate-flow-js2-minor-mode)
 
 (defun flow-js2-do-create-name-node (name &optional check-activation-p token string)
-  (let ((next (js2-peek-token)))
-    (when (js2-match-token js2-COLON)
-      (let* ((pos (js2-node-pos name))
-             (tt (js2-current-token-type))
-             (left name)
-             (type-spec (js2-parse-flow-type-spec))
-             (len (- (js2-node-end type-spec) pos)))
-        (setq name (make-js2-flow-type-node :pos pos :len len :name name :typespec type-spec))
-        (js2-node-add-children name left type-spec)))
-    name))
+  (when (js2-match-token js2-COLON)
+    (let* ((pos (js2-node-pos name))
+           (tt (js2-current-token-type))
+           (left name)
+           (type-spec (js2-parse-flow-type-spec))
+           (len (- (js2-node-end type-spec) pos)))
+      (setq name (make-js2-flow-typed-name-node :pos pos :len len :name name :typespec type-spec))
+      (js2-node-add-children name left type-spec)))
+  name)
 
 
 ;;; Node types
 
-(cl-defstruct (js2-flow-type-node
+(cl-defstruct (js2-flow-typed-name-node
                (:include js2-node)
                (:constructor nil)
-               (:constructor make-js2-flow-type-node (&key (pos (js2-current-token-beg))
-                                                           (len (- js2-ts-cursor
-                                                                   (js2-current-token-beg)))
-                                                           name
-                                                           typespec)))
+               (:constructor make-js2-flow-typed-name-node (&key (pos (js2-current-token-beg))
+                                                                 (len (- js2-ts-cursor
+                                                                         (js2-current-token-beg)))
+                                                                 name
+                                                                 typespec)))
   "Represent a name with a flow type annotation."
   name
   typespec)
 
-(put 'cl-struct-js2-flow-type-node 'js2-visitor 'js2-visit-none)
-(put 'cl-struct-js2-flow-type-node 'js2-printer 'js2-print-flow-type-node)
+(put 'cl-struct-js2-flow-typed-name-node 'js2-visitor 'js2-visit-none)
+(put 'cl-struct-js2-flow-typed-name-node 'js2-printer 'js2-print-flow-typed-name-node)
 
-(defun js2-print-flow-type-node (n i)
+(defun js2-print-flow-typed-name-node (n i)
   (let* ((tt (js2-node-type n)))
-    (js2-print-ast (js2-flow-type-node-name n) 0)
+    (js2-print-ast (js2-flow-typed-name-node-name n) 0)
     (insert ": ")
-    (js2-print-ast (js2-flow-type-node-typespec n) 0)))
+    (js2-print-ast (js2-flow-typed-name-node-typespec n) 0)))
 
-(defun js2-parse-flow-type-spec ()
+(cl-defstruct (js2-flow-typespec-union-node
+               (:include js2-node)
+               (:constructor nil)
+               (:constructor make-js2-flow-typespec-union-node (&key (pos (js2-current-token-beg))
+                                                                     (len (- js2-ts-cursor
+                                                                             (js2-current-token-beg)))
+                                                                     left right)))
+  "Represent a flow union type."
+  left
+  right)
+
+(put 'cl-struct-js2-flow-typespec-union-node 'js2-visitor 'js2-visit-none)
+(put 'cl-struct-js2-flow-typespec-union-node 'js2-printer 'js2-print-flow-typespec-union-node)
+
+(defun js2-print-flow-typespec-union-node (n i)
+  (js2-print-ast (js2-flow-typespec-union-node-left n) 0)
+  (insert " | ")
+  (js2-print-ast (js2-flow-typespec-union-node-right n) 0))
+
+(defun js2-parse-flow-leaf-type-spec ()
   (let ((flow-js2-parsing-typespec-p t)
-        (tt (js2-get-token))
-        (pos (js2-current-token-beg))
-        pn)
+        (tt (js2-get-token)))
     (when (= tt js2-NAME)
       (js2-parse-name tt))))
+
+(defun js2-parse-flow-type-spec ()
+  (let ((type-spec (js2-parse-flow-leaf-type-spec)))
+    (cl-loop while (js2-match-token js2-BITOR)
+             do (let ((right (js2-parse-flow-leaf-type-spec)))
+                  (setq type-spec (make-js2-flow-typespec-union-node :left type-spec :right right))))
+      type-spec))
 
 ;;; Some helpers for symbol definition:
 
 (defun flow-js2-define-symbol (orig-fun decl-type name &optional node ignore-not-in-block)
   (if (and (not (null node))
-           (js2-flow-type-node-p node))
-      (funcall orig-fun decl-type (js2-name-node-name (js2-flow-type-node-name node))
-               (js2-name-node-name node)
-               ignore-not-in-block)
+           (js2-flow-typed-name-node-p node))
+      (let ((name-node (js2-flow-typed-name-node-name node)))
+        (funcall orig-fun decl-type (js2-name-node-name name-node)
+                 name-node
+                 ignore-not-in-block))
     (funcall orig-fun decl-type name node ignore-not-in-block)))
 
 (advice-add 'js2-define-symbol :around #'flow-js2-define-symbol)

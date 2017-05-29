@@ -90,37 +90,20 @@ variables and function arguments alike." (n i)
   (js2-print-ast (js2-flow-typespec-combination-node-right n) 0))
 
 ;;; Maybe types: ?a
-(cl-defstruct (js2-flow-typespec-maybe-node
-               (:include js2-node)
-               (:constructor nil)
-               (:constructor make-js2-flow-typespec-maybe-node (&key (pos (js2-current-token-beg))
-                                                                     (len (- js2-ts-cursor
-                                                                             (js2-current-token-beg)))
-                                                                     typespec)))
-  "Represent a flow maybe type."
-  typespec)
-
-(put 'cl-struct-js2-flow-typespec-maybe-node 'js2-visitor 'js2-visit-none)
-(put 'cl-struct-js2-flow-typespec-maybe-node 'js2-printer 'js2-print-flow-typespec-maybe-node)
-
-
-(defun js2-print-flow-typespec-maybe-node (n i)
+(js2-flow-define-node-type (js2-flow-typespec-maybe-node (typespec)
+                                                         (pos (js2-current-token-beg))
+                                                         (len (- js2-ts-cursor
+                                                                 (js2-current-token-beg)))
+                                                         typespec)
+  "Represent a flow maybe type." (n i)
   (insert "?")
   (js2-print-ast (js2-flow-typespec-maybe-node-typespec n) 0))
 
 ;;; Type alias definitions --- type Foo = Bar
-(cl-defstruct (js2-flow-type-alias-node
-               (:include js2-node)
-               (:constructor nil)
-               (:constructor make-js2-flow-type-alias-node (&key pos (len (- js2-ts-cursor pos))
-                                                                 type-name typespec)))
-  "Represent a flow type alias definition."
-  type-name typespec)
-
-(put 'cl-struct-js2-flow-type-alias-node 'js2-visitor 'js2-visit-none)
-(put 'cl-struct-js2-flow-type-alias-node 'js2-printer 'js2-print-flow-type-alias-node)
-
-(defun js2-print-flow-type-alias-node (n i)
+(js2-flow-define-node-type (js2-flow-type-alias-node (type-name typespec)
+                                                     (pos (len (- js2-ts-cursor pos)))
+                                                     type-name typespec)
+  "Represent a flow type alias definition." (n i)
   (insert "type ")
   (js2-print-ast (js2-flow-type-alias-node-type-name n) 0)
   (insert " = ")

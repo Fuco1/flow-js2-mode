@@ -10,6 +10,12 @@
   "Minor mode for editing JS files with flow type annotations."
   :lighter ":FLOW"
   :group 'flow-js2-minor-mode
+
+  ;; register "type" as a keyword:
+  (add-to-list (make-local-variable 'js2-keywords) 'type)
+  (aset js2-kwd-tokens js2-flow-TYPE 'font-lock-keyword-face)
+
+  ;; Register the primitive types as external identifiers:
   (dolist (kw '("boolean" "number" "string" "null" "void" "any" "mixed"))
     (add-to-list 'js2-additional-externs kw)))
 
@@ -18,7 +24,6 @@
              ;; (flow-configured-p)
              )
     (flow-js2-minor-mode +1)))
-
 
 (defvar flow-js2-parsing-typespec-p nil)
 (defun flow-js2-create-name-node (orig-fun &rest args)
@@ -106,9 +111,29 @@
 (put 'cl-struct-js2-flow-typespec-maybe-node 'js2-visitor 'js2-visit-none)
 (put 'cl-struct-js2-flow-typespec-maybe-node 'js2-printer 'js2-print-flow-typespec-maybe-node)
 
+
 (defun js2-print-flow-typespec-maybe-node (n i)
   (insert "?")
   (js2-print-ast (js2-flow-typespec-maybe-node-typespec n) 0))
+
+;;; Type alias definitions --- type Foo = Bar
+(cl-defstruct (js2-flow-type-alias-node
+               (:include js2-node)
+               (:constructor nil)
+               (:constructor make-js2-flow-type-alias-node (&key pos (len (- js2-ts-cursor pos))
+                                                                 type-name typespec)))
+  "Represent a flow type alias definition."
+  type-name typespec)
+
+(put 'cl-struct-js2-flow-type-alias-node 'js2-visitor 'js2-visit-none)
+(put 'cl-struct-js2-flow-type-alias-node 'js2-printer 'js2-print-flow-type-alias-node)
+
+(defun js2-print-flow-type-alias-node (n i)
+  (insert "type ")
+  (js2-print-ast (js2-flow-type-alias-node-type-name n) 0)
+  (insert " = ")
+  (js2-print-ast (js2-flow-type-alias-node-typespec n) 0)
+  (insert ";\n"))
 
 ;;; Parsing nodes:
 (defun js2-parse-flow-leaf-type-spec ()
@@ -123,7 +148,7 @@
              (js2-node-add-children maybe maybe type-spec)
              maybe))
           ((= tt js2-NAME)
-           (js2-parse-name tt))
+           (js2-create-name-node nil))
           ((= tt js2-STRING)
            (make-js2-string-node :type tt))
           ((= tt js2-NUMBER)
@@ -148,7 +173,7 @@
                   (js2-node-add-children type-spec left right)))
       type-spec))
 
-;;; A helpers to ensure symbol definition lines up correctly:
+;;; A helper to ensure symbol definition lines up correctly:
 (defun flow-js2-define-symbol (orig-fun decl-type name &optional node ignore-not-in-block)
   (if (and (not (null node))
            (js2-flow-typed-name-node-p node))
@@ -159,3 +184,31 @@
     (funcall orig-fun decl-type name node ignore-not-in-block)))
 
 (advice-add 'js2-define-symbol :around #'flow-js2-define-symbol)
+
+;;; Parse "type" (it gets interpreted as a name):
+(defun flow-js2-parse-name-or-label (orig-fun)
+  (if (string-equal (js2-current-token-string) "type")
+      (flow-js2-parse-type-alias)
+    (funcall orig-fun)))
+(advice-add 'js2-parse-name-or-label :around #'flow-js2-parse-name-or-label)
+
+(defun flow-js2-parse-type-alias ()
+  "Parse `type Foo = <type-def>` type aliases."
+  (let ((pos (js2-current-token-beg)))
+    (when (js2-match-token js2-NAME)
+      (let ((name (js2-create-name-node nil)))
+        (if (not (js2-match-token js2-ASSIGN))
+            (progn
+              (js2-report-error "msg.syntax")
+              (make-js2-error-node))
+          (let* ((typespec (js2-parse-flow-type-spec))
+                 (alias (make-js2-flow-type-alias-node :pos pos
+                                                 :type-name name :typespec typespec)))
+            (js2-node-add-children typespec name alias)
+            alias))))))
+
+(defun flow-js2-record-name-node (orig-fun node)
+  (if (js2-flow-typed-name-node-p node)
+      (funcall orig-fun (js2-flow-typed-name-node-name node))
+    (funcall orig-fun node)))
+(advice-add 'js2-record-name-node :around #'flow-js2-record-name-node)

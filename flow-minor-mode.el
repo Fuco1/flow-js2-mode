@@ -69,25 +69,28 @@
     (insert ": ")
     (js2-print-ast (js2-flow-typed-name-node-typespec n) 0)))
 
-;;; Union types --- a | b
-(cl-defstruct (js2-flow-typespec-union-node
+;;; Combination types --- a | b
+(cl-defstruct (js2-flow-typespec-combination-node
                (:include js2-node)
                (:constructor nil)
-               (:constructor make-js2-flow-typespec-union-node (&key (pos (js2-current-token-beg))
+               (:constructor make-js2-flow-typespec-combination-node (&key (pos (js2-current-token-beg))
                                                                      (len (- js2-ts-cursor
                                                                              (js2-current-token-beg)))
-                                                                     left right)))
-  "Represent a flow union type."
+                                                                     op left right)))
+  "Represent a flow combination type."
+  op
   left
   right)
 
-(put 'cl-struct-js2-flow-typespec-union-node 'js2-visitor 'js2-visit-none)
-(put 'cl-struct-js2-flow-typespec-union-node 'js2-printer 'js2-print-flow-typespec-union-node)
+(put 'cl-struct-js2-flow-typespec-combination-node 'js2-visitor 'js2-visit-none)
+(put 'cl-struct-js2-flow-typespec-combination-node 'js2-printer 'js2-print-flow-typespec-combination-node)
 
-(defun js2-print-flow-typespec-union-node (n i)
-  (js2-print-ast (js2-flow-typespec-union-node-left n) 0)
-  (insert " | ")
-  (js2-print-ast (js2-flow-typespec-union-node-right n) 0))
+(defun js2-print-flow-typespec-combination-node (n i)
+  (js2-print-ast (js2-flow-typespec-combination-node-left n) 0)
+  (insert " ")
+  (insert (js2-flow-typespec-combination-node-op n))
+  (insert " ")
+  (js2-print-ast (js2-flow-typespec-combination-node-right n) 0))
 
 ;;; Parsing nodes:
 (defun js2-parse-flow-leaf-type-spec ()
@@ -109,9 +112,14 @@
 
 (defun js2-parse-flow-type-spec ()
   (let ((type-spec (js2-parse-flow-leaf-type-spec)))
-    (cl-loop while (js2-match-token js2-BITOR)
-             do (let ((right (js2-parse-flow-leaf-type-spec)))
-                  (setq type-spec (make-js2-flow-typespec-union-node :left type-spec :right right))))
+    (cl-loop while (or (js2-match-token js2-BITOR) (js2-match-token js2-BITAND))
+             do (let ((op (if (eq (js2-current-token-type) js2-BITOR)
+                              ?|
+                            ?&))
+                      (right (js2-parse-flow-leaf-type-spec)))
+                  (setq type-spec (make-js2-flow-typespec-combination-node :op op
+                                                                           :left type-spec
+                                                                           :right right))))
       type-spec))
 
 ;;; A helpers to ensure symbol definition lines up correctly:

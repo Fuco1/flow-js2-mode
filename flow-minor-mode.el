@@ -47,46 +47,42 @@
 
 ;;; Node types
 
+(cl-defmacro js2-flow-define-node-type ((name (&rest fields) &rest constructor-args)
+                                     docstring
+                                     (&rest print-function-args) &body print-function-body)
+  (declare (indent defun))
+  (let ((attributed-sym (intern (format "cl-struct-%s" name)))
+        (printer-name (intern (format "print-%s" name))))
+    `(progn
+       (cl-defstruct (,name (:include js2-node) (:constructor nil)
+                            (:constructor ,(intern (format "make-%s" name)) (&key ,@constructor-args)))
+         docstring
+         ,@fields)
+       (put ',attributed-sym 'js2-visitor 'js2-visit-none)
+       (put ',attributed-sym 'js2-printer
+            (defun ,printer-name (,@print-function-args) ,@print-function-body)))))
+
 ;;; Type-annotated variables or other names --- const a: string
-(cl-defstruct (js2-flow-typed-name-node
-               (:include js2-node)
-               (:constructor nil)
-               (:constructor make-js2-flow-typed-name-node (&key (pos (js2-current-token-beg))
-                                                                 (len (- js2-ts-cursor
-                                                                         (js2-current-token-beg)))
-                                                                 name
-                                                                 typespec)))
+(js2-flow-define-node-type (js2-flow-typed-name-node (name typespec)
+                                                     (pos (js2-current-token-beg))
+                                                     (len (- js2-ts-cursor
+                                                             (js2-current-token-beg)))
+                                                     name
+                                                     typespec)
   "Represent a name with a flow type annotation. This applies to
-  variables and function arguments alike."
-  name
-  typespec)
-
-(put 'cl-struct-js2-flow-typed-name-node 'js2-visitor 'js2-visit-none)
-(put 'cl-struct-js2-flow-typed-name-node 'js2-printer 'js2-print-flow-typed-name-node)
-
-(defun js2-print-flow-typed-name-node (n i)
+variables and function arguments alike." (n i)
   (let* ((tt (js2-node-type n)))
     (js2-print-ast (js2-flow-typed-name-node-name n) 0)
     (insert ": ")
     (js2-print-ast (js2-flow-typed-name-node-typespec n) 0)))
 
 ;;; Combination types --- a | b or a & b
-(cl-defstruct (js2-flow-typespec-combination-node
-               (:include js2-node)
-               (:constructor nil)
-               (:constructor make-js2-flow-typespec-combination-node (&key (pos (js2-current-token-beg))
-                                                                     (len (- js2-ts-cursor
-                                                                             (js2-current-token-beg)))
-                                                                     op left right)))
-  "Represent a flow combination type."
-  op
-  left
-  right)
-
-(put 'cl-struct-js2-flow-typespec-combination-node 'js2-visitor 'js2-visit-none)
-(put 'cl-struct-js2-flow-typespec-combination-node 'js2-printer 'js2-print-flow-typespec-combination-node)
-
-(defun js2-print-flow-typespec-combination-node (n i)
+(js2-flow-define-node-type (js2-flow-typespec-combination-node (op left right)
+                                                               (pos (js2-current-token-beg))
+                                                               (len (- js2-ts-cursor
+                                                                       (js2-current-token-beg)))
+                                                               op left right)
+  "Represent a flow combination (union or intersection) type." (n i)
   (js2-print-ast (js2-flow-typespec-combination-node-left n) 0)
   (insert " ")
   (insert (js2-flow-typespec-combination-node-op n))

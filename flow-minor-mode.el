@@ -110,14 +110,18 @@
   (insert "?")
   (js2-print-ast (js2-flow-typespec-maybe-node-typespec n) 0))
 
-
 ;;; Parsing nodes:
 (defun js2-parse-flow-leaf-type-spec ()
   (let ((flow-js2-parsing-typespec-p t)
         (tt (js2-get-token)))
     (cond ((= tt js2-HOOK)
-           (make-js2-flow-typespec-maybe-node
-            :typespec (js2-parse-flow-leaf-type-spec)))
+           (let* ((pos (js2-current-token-beg))
+                  (type-spec (js2-parse-flow-leaf-type-spec))
+                  (len (- (js2-node-end type-spec) pos))
+                  (maybe (make-js2-flow-typespec-maybe-node :pos pos :len len
+                                                            :typespec type-spec)))
+             (js2-node-add-children maybe maybe type-spec)
+             maybe))
           ((= tt js2-NAME)
            (js2-parse-name tt))
           ((= tt js2-STRING)
@@ -135,13 +139,13 @@
 (defun js2-parse-flow-type-spec ()
   (let ((type-spec (js2-parse-flow-leaf-type-spec)))
     (cl-loop while (or (js2-match-token js2-BITOR) (js2-match-token js2-BITAND))
-             do (let ((op (if (eq (js2-current-token-type) js2-BITOR)
-                              ?|
-                            ?&))
+             do (let ((op (if (eq (js2-current-token-type) js2-BITOR) ?| ?&))
+                      (left type-spec)
                       (right (js2-parse-flow-leaf-type-spec)))
                   (setq type-spec (make-js2-flow-typespec-combination-node :op op
                                                                            :left type-spec
-                                                                           :right right))))
+                                                                           :right right))
+                  (js2-node-add-children type-spec left right)))
       type-spec))
 
 ;;; A helpers to ensure symbol definition lines up correctly:

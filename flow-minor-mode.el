@@ -72,7 +72,7 @@
   "Represent a name with a flow type annotation. This applies to
 variables and function arguments alike." (n i)
   (let* ((tt (js2-node-type n)))
-    (js2-print-ast (js2-flow-type-anotated-node-name n) 0)
+    (js2-print-ast (js2-flow-type-anotated-node-name n) i)
     (insert ": ")
     (js2-print-ast (js2-flow-type-anotated-node-typespec n) 0)))
 
@@ -109,6 +109,17 @@ variables and function arguments alike." (n i)
   (insert " = ")
   (js2-print-ast (js2-flow-type-alias-node-typespec n) 0)
   (insert ";\n"))
+
+;;; Type-annotated class properties:
+(js2-flow-define-node-type (js2-flow-typed-class-property-node (property value)
+                                                               (pos (len (- js2-ts-cursor pos)))
+                                                               property value)
+  "Represent a type-annotated property with an optional assignment." (n i)
+  (js2-print-ast (js2-flow-typed-class-property-node-property n) i)
+  (when (js2-flow-typed-class-property-node-value n)
+    (insert " = ")
+    (js2-print-ast (js2-flow-typed-class-property-node-value n) 0))
+  (insert ";"))
 
 ;;; Parsing nodes:
 (defun js2-parse-flow-leaf-type-spec ()
@@ -148,7 +159,7 @@ variables and function arguments alike." (n i)
                                                                            :left type-spec
                                                                            :right right))
                   (js2-node-add-children type-spec left right)))
-      type-spec))
+    type-spec))
 
 ;;; A helper to ensure symbol definition lines up correctly:
 (defun flow-js2-define-symbol (orig-fun decl-type name &optional node ignore-not-in-block)
@@ -180,7 +191,7 @@ variables and function arguments alike." (n i)
               (make-js2-error-node))
           (let* ((typespec (js2-parse-flow-type-spec))
                  (alias (make-js2-flow-type-alias-node :pos pos
-                                                 :type-name name :typespec typespec)))
+                                                       :type-name name :typespec typespec)))
             (js2-node-add-children typespec name alias)
             alias))))))
 
@@ -190,3 +201,21 @@ variables and function arguments alike." (n i)
       (funcall orig-fun (js2-flow-type-anotated-node-name node))
     (funcall orig-fun node)))
 (advice-add 'js2-record-name-node :around #'flow-js2-record-name-node)
+
+;;; Parse class property syntax:
+(defun flow-js2-parse-named-prop (orig-fun tt previous-token)
+  (let ((key (js2-parse-prop-name tt))
+        (pos (js2-current-token-beg)))
+    (cond ((not (null previous-token))
+           (funcall orig-fun tt previous-token))
+          ((js2-match-token js2-ASSIGN)
+           (let* ((assignment (js2-parse-assign-expr))
+                  (prop (make-js2-flow-typed-class-property-node
+                         :pos pos
+                         :property key
+                         :value assignment)))
+             (js2-node-add-children prop key prop)
+             prop))
+          (t
+           (funcall orig-fun tt previous-token)))))
+(advice-add 'js2-parse-named-prop :around #'flow-js2-parse-named-prop)

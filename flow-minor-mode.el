@@ -69,7 +69,7 @@
     (insert ": ")
     (js2-print-ast (js2-flow-typed-name-node-typespec n) 0)))
 
-;;; Combination types --- a | b
+;;; Combination types --- a | b or a & b
 (cl-defstruct (js2-flow-typespec-combination-node
                (:include js2-node)
                (:constructor nil)
@@ -92,11 +92,33 @@
   (insert " ")
   (js2-print-ast (js2-flow-typespec-combination-node-right n) 0))
 
+;;; Maybe types: ?a
+(cl-defstruct (js2-flow-typespec-maybe-node
+               (:include js2-node)
+               (:constructor nil)
+               (:constructor make-js2-flow-typespec-maybe-node (&key (pos (js2-current-token-beg))
+                                                                     (len (- js2-ts-cursor
+                                                                             (js2-current-token-beg)))
+                                                                     typespec)))
+  "Represent a flow maybe type."
+  typespec)
+
+(put 'cl-struct-js2-flow-typespec-maybe-node 'js2-visitor 'js2-visit-none)
+(put 'cl-struct-js2-flow-typespec-maybe-node 'js2-printer 'js2-print-flow-typespec-maybe-node)
+
+(defun js2-print-flow-typespec-maybe-node (n i)
+  (insert "?")
+  (js2-print-ast (js2-flow-typespec-maybe-node-typespec n) 0))
+
+
 ;;; Parsing nodes:
 (defun js2-parse-flow-leaf-type-spec ()
   (let ((flow-js2-parsing-typespec-p t)
         (tt (js2-get-token)))
-    (cond ((= tt js2-NAME)
+    (cond ((= tt js2-HOOK)
+           (make-js2-flow-typespec-maybe-node
+            :typespec (js2-parse-flow-leaf-type-spec)))
+          ((= tt js2-NAME)
            (js2-parse-name tt))
           ((= tt js2-STRING)
            (make-js2-string-node :type tt))

@@ -157,6 +157,8 @@
                (= tt js2-TRUE)
                (= tt js2-FALSE))
            (make-js2-keyword-node :type tt))
+          ((= tt js2-LC)
+           (js2-parse-object-literal))
           (t
            (js2-report-error "msg.syntax")
            (make-js2-error-node)))))

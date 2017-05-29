@@ -40,7 +40,7 @@
            (left name)
            (type-spec (js2-parse-flow-type-spec))
            (len (- (js2-node-end type-spec) pos)))
-      (setq name (make-js2-flow-type-anotated-node :pos pos :len len :name name :typespec type-spec))
+      (setq name (make-js2-flow-type-annotated-node :pos pos :len len :name name :typespec type-spec))
       (js2-node-add-children name left type-spec)))
   name)
 
@@ -63,7 +63,7 @@
             (defun ,printer-name (,@print-function-args) ,@print-function-body)))))
 
 ;;; Type-annotated variables or other names --- const a: string
-(js2-flow-define-node-type (js2-flow-type-anotated-node (name typespec)
+(js2-flow-define-node-type (js2-flow-type-annotated-node (name typespec)
                                                      (pos (js2-current-token-beg))
                                                      (len (- js2-ts-cursor
                                                              (js2-current-token-beg)))
@@ -72,9 +72,9 @@
   "Represent a name with a flow type annotation. This applies to
 variables and function arguments alike." (n i)
   (let* ((tt (js2-node-type n)))
-    (js2-print-ast (js2-flow-type-anotated-node-name n) i)
+    (js2-print-ast (js2-flow-type-annotated-node-name n) i)
     (insert ": ")
-    (js2-print-ast (js2-flow-type-anotated-node-typespec n) 0)))
+    (js2-print-ast (js2-flow-type-annotated-node-typespec n) 0)))
 
 ;;; Combination types --- a | b or a & b
 (js2-flow-define-node-type (js2-flow-typespec-combination-node (op left right)
@@ -121,7 +121,8 @@ variables and function arguments alike." (n i)
     (js2-print-ast (js2-flow-typed-class-property-node-value n) 0))
   (insert ";"))
 
-;;; Parsing nodes:
+
+;;;; Parsing nodes:
 (defun js2-parse-flow-leaf-type-spec ()
   (let ((flow-js2-parsing-typespec-p t)
         (tt (js2-get-token)))
@@ -164,8 +165,8 @@ variables and function arguments alike." (n i)
 ;;; A helper to ensure symbol definition lines up correctly:
 (defun flow-js2-define-symbol (orig-fun decl-type name &optional node ignore-not-in-block)
   (if (and (not (null node))
-           (js2-flow-type-anotated-node-p node))
-      (let ((name-node (js2-flow-type-anotated-node-name node)))
+           (js2-flow-type-annotated-node-p node))
+      (let ((name-node (js2-flow-type-annotated-node-name node)))
         (funcall orig-fun decl-type (js2-name-node-name name-node)
                  name-node
                  ignore-not-in-block))
@@ -197,8 +198,8 @@ variables and function arguments alike." (n i)
 
 (defun flow-js2-record-name-node (orig-fun node)
   "Support registering an (optionally flow-typed) name node as a regular name node."
-  (if (js2-flow-type-anotated-node-p node)
-      (funcall orig-fun (js2-flow-type-anotated-node-name node))
+  (if (js2-flow-type-annotated-node-p node)
+      (funcall orig-fun (js2-flow-type-annotated-node-name node))
     (funcall orig-fun node)))
 (advice-add 'js2-record-name-node :around #'flow-js2-record-name-node)
 

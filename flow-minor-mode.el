@@ -11,10 +11,6 @@
   :lighter ":FLOW"
   :group 'flow-js2-minor-mode
 
-  ;; register "type" as a keyword:
-  (add-to-list (make-local-variable 'js2-keywords) 'type)
-  (aset js2-kwd-tokens js2-flow-TYPE 'font-lock-keyword-face)
-
   ;; Register the primitive types as external identifiers:
   (dolist (kw '("boolean" "number" "string" "null" "void" "any" "mixed"))
     (add-to-list 'js2-additional-externs kw)))
@@ -210,6 +206,7 @@
             alias))))))
 
 (defun flow-js2-record-name-node (orig-fun node)
+  "Support registering an (optionally flow-typed) name node as a regular name node."
   (if (js2-flow-typed-name-node-p node)
       (funcall orig-fun (js2-flow-typed-name-node-name node))
     (funcall orig-fun node)))

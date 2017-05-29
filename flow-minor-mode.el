@@ -224,12 +224,11 @@ variables and function arguments alike." (n i)
 ;;; Parse functions with return type annotations:
 (defun flow-js2-parse-function-params (orig-fun function-type fn-node pos)
   (funcall orig-fun function-type fn-node pos)
-  (if (js2-match-token js2-COLON)
-      (let* ((typespec (js2-parse-flow-type-spec))
-             (type-annotation (make-js2-flow-type-annotated-node :pos pos
-                                                                 :name fn-node
-                                                                 :typespec typespec)))
-        (js2-node-add-children fn-node type-annotation typespec)
-        type-annotation)
-    arglist))
+  (when (js2-match-token js2-COLON)
+    (let* ((typespec (js2-parse-flow-type-spec))
+           (type-annotation (make-js2-flow-type-annotated-node :pos pos
+                                                               :name fn-node
+                                                               :typespec typespec)))
+      (js2-node-add-children fn-node type-annotation typespec)
+      type-annotation)))
 (advice-add 'js2-parse-function-params :around #'flow-js2-parse-function-params)

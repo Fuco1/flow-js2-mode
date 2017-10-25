@@ -206,11 +206,11 @@ variables and function arguments alike." (n i)
 (advice-add 'js2-record-name-node :around #'flow-js2-record-name-node)
 
 ;;; Parse class property syntax:
-(defun flow-js2-parse-named-prop (orig-fun tt previous-token)
+(defun flow-js2-parse-named-prop (orig-fun tt previous-token &optional class-p)
   (let ((key (js2-parse-prop-name tt))
         (pos (js2-current-token-beg)))
     (cond ((not (null previous-token))
-           (funcall orig-fun tt previous-token))
+           (funcall orig-fun tt previous-token class-p))
           ((js2-match-token js2-ASSIGN)
            (let* ((assignment (js2-parse-assign-expr))
                   (prop (make-js2-flow-typed-class-property-node
@@ -220,7 +220,7 @@ variables and function arguments alike." (n i)
              (js2-node-add-children prop key prop)
              prop))
           (t
-           (funcall orig-fun tt previous-token)))))
+           (funcall orig-fun tt previous-token class-p)))))
 (advice-add 'js2-parse-named-prop :around #'flow-js2-parse-named-prop)
 
 ;;; Parse functions with return type annotations:

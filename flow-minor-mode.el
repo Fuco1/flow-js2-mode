@@ -34,7 +34,8 @@
 (add-hook 'js2-mode-hook 'activate-flow-js2-minor-mode)
 
 (defun flow-js2-do-create-name-node (name &optional check-activation-p token string)
-  (when (js2-match-token js2-COLON)
+  (when (and (not flow-js2-parse-object-literal-p)
+             (js2-match-token js2-COLON))
     (let* ((pos (js2-node-pos name))
            (tt (js2-current-token-type))
            (left name)
@@ -226,6 +227,12 @@ variables and function arguments alike." (n i)
 (advice-add 'js2-record-name-node :around #'flow-js2-record-name-node)
 
 ;;; Parse class property syntax:
+(defvar flow-js2-parse-object-literal-p nil)
+(defun flow-js2-parse-object-literal (orig-fun)
+  (let ((flow-js2-parse-object-literal-p t))
+    (funcall orig-fun)))
+(advice-add 'js2-parse-object-literal :around #'flow-js2-parse-object-literal)
+
 (defun flow-js2-parse-named-prop (orig-fun tt previous-token &optional class-p)
   (let ((key (js2-parse-prop-name tt))
         (pos (js2-current-token-beg)))

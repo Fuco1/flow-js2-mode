@@ -1,5 +1,5 @@
 (require 'rjsx-mode)
-(require 'flow-mode)
+(require 'flow-minor-mode)
 
 (defgroup flow-js2-minor-mode nil
   "Support for flow annotations in JSX files."
@@ -16,7 +16,7 @@
     (add-to-list 'js2-additional-externs kw)))
 
 (defun activate-flow-js2-minor-mode ()
-  (when (and (flow-tag-present-p)
+  (when (and (flow-minor-tag-present-p)
              ;; (flow-configured-p)
              )
     (flow-js2-minor-mode +1)))

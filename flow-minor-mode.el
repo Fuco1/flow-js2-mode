@@ -89,6 +89,16 @@ variables and function arguments alike." (n i)
   (insert " ")
   (js2-print-ast (js2-flow-typespec-combination-node-right n) 0))
 
+;;; Array type: a[]
+(js2-flow-define-node-type (js2-flow-typespec-array-node (typespec)
+                                                         (pos (js2-current-token-beg))
+                                                         (len (- js2-ts-cursor
+                                                                 (js2-current-token-beg)))
+                                                         typespec)
+  "Represent a flow array type." (n i)
+  (js2-print-ast (js2-flow-typespec-maybe-node-typespec n) 0)
+  (insert "[]"))
+
 ;;; Maybe types: ?a
 (js2-flow-define-node-type (js2-flow-typespec-maybe-node (typespec)
                                                          (pos (js2-current-token-beg))
@@ -153,6 +163,16 @@ variables and function arguments alike." (n i)
            (make-js2-error-node)))))
 
 (defun js2-parse-flow-type-spec ()
+  (let ((type-spec (js2-parse-flow-union-or-intersection-type-spec)))
+    (when (js2-match-token js2-LB)
+      (let ((array-node (js2-parse-array-literal (js2-current-token-beg))))
+        (setq type-spec (make-js2-flow-typespec-array-node
+                         :pos (js2-node-pos type-spec)
+                         :len (- (js2-node-end array-node) (js2-node-pos type-spec))
+                         :typespec type-spec))))
+    type-spec))
+
+(defun js2-parse-flow-union-or-intersection-type-spec ()
   (let ((type-spec (js2-parse-flow-leaf-type-spec)))
     (cl-loop while (or (js2-match-token js2-BITOR) (js2-match-token js2-BITAND))
              do (let ((op (if (eq (js2-current-token-type) js2-BITOR) ?| ?&))

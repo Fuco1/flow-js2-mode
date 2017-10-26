@@ -261,3 +261,10 @@ variables and function arguments alike." (n i)
       (js2-node-add-children fn-node type-annotation typespec)
       type-annotation)))
 (advice-add 'js2-parse-function-params :around #'flow-js2-parse-function-params)
+
+;;; Parse `import type' nodes
+(defun flow-js2-parse-import-clause (orig-fun)
+  (if (js2-match-contextual-kwd "type")
+      (funcall orig-fun)
+    (funcall orig-fun)))
+(advice-add 'js2-parse-import-clause :around #'flow-js2-parse-import-clause)

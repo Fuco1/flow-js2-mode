@@ -273,3 +273,10 @@ variables and function arguments alike." (n i)
       (funcall orig-fun)
     (funcall orig-fun)))
 (advice-add 'js2-parse-import-clause :around #'flow-js2-parse-import-clause)
+
+;;; Parse `export type' nodes
+(defun flow-js2-parse-export (orig-fun)
+  (if (js2-match-contextual-kwd "type")
+      (flow-js2-parse-type-alias)
+    (funcall orig-fun)))
+(advice-add 'js2-parse-export :around #'flow-js2-parse-export)

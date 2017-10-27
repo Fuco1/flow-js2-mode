@@ -25,7 +25,8 @@
 (defun flow-js2-create-name-node (orig-fun &rest args)
   (let ((name (apply orig-fun args)))
     (if (and flow-js2-minor-mode
-             (not flow-js2-parsing-typespec-p))
+             (or (not flow-js2-parsing-typespec-p)
+                 flow-js2-parsing-type-alias-p))
         (apply 'flow-js2-do-create-name-node name args)
       name)))
 
@@ -34,8 +35,11 @@
 (add-hook 'js2-mode-hook 'activate-flow-js2-minor-mode)
 
 (defun flow-js2-do-create-name-node (name &optional check-activation-p token string)
-  (when (and (not flow-js2-parse-object-literal-p)
-             (js2-match-token js2-COLON))
+  (when (and (or (not flow-js2-parse-object-literal-p)
+                 flow-js2-parsing-type-alias-p)
+             (or (and (js2-match-token js2-HOOK)
+                      (js2-match-token js2-COLON))
+                 (js2-match-token js2-COLON)))
     (let* ((pos (js2-node-pos name))
            (tt (js2-current-token-type))
            (left name)
@@ -204,6 +208,7 @@ variables and function arguments alike." (n i)
     (funcall orig-fun)))
 (advice-add 'js2-parse-name-or-label :around #'flow-js2-parse-name-or-label)
 
+(defvar flow-js2-parsing-type-alias-p nil)
 (defun flow-js2-parse-type-alias ()
   "Parse `type Foo = <type-def>` type aliases."
   (let ((pos (js2-current-token-beg)))
@@ -213,7 +218,8 @@ variables and function arguments alike." (n i)
             (progn
               (js2-report-error "msg.syntax")
               (make-js2-error-node))
-          (let* ((typespec (js2-parse-flow-type-spec))
+          (let* ((flow-js2-parsing-type-alias-p t)
+                 (typespec (js2-parse-flow-type-spec))
                  (alias (make-js2-flow-type-alias-node :pos pos
                                                        :type-name name :typespec typespec)))
             (js2-node-add-children typespec name alias)

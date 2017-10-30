@@ -35,19 +35,23 @@
 (add-hook 'js2-mode-hook 'activate-flow-js2-minor-mode)
 
 (defun flow-js2-do-create-name-node (name &optional check-activation-p token string)
-  (when (and (or (not flow-js2-parse-object-literal-p)
-                 flow-js2-parsing-type-alias-p)
-             (or (and (js2-match-token js2-HOOK)
-                      (js2-match-token js2-COLON))
-                 (js2-match-token js2-COLON)))
-    (let* ((pos (js2-node-pos name))
-           (tt (js2-current-token-type))
-           (left name)
-           (type-spec (js2-parse-flow-type-spec))
-           (len (- (js2-node-end type-spec) pos)))
-      (js2-set-face pos (js2-node-end name) 'font-lock-variable-name-face 'record)
-      (setq name (make-js2-flow-type-annotated-node :pos pos :len len :name name :typespec type-spec))
-      (js2-node-add-children name left type-spec)))
+  (let (generic-type)
+    (when (and (or (not flow-js2-parse-object-literal-p)
+                   flow-js2-parsing-type-alias-p)
+               (or (and (js2-match-token js2-HOOK)
+                        (js2-match-token js2-COLON))
+                   (js2-match-token js2-COLON)
+                   (setq generic-type (js2-match-token js2-LT))))
+      (let* ((pos (js2-node-pos name))
+             (tt (js2-current-token-type))
+             (left name)
+             (type-spec (js2-parse-flow-type-spec))
+             (len (- (js2-node-end type-spec) pos)))
+        (when generic-type
+          (js2-match-token js2-GT))
+        (js2-set-face pos (js2-node-end name) 'font-lock-variable-name-face 'record)
+        (setq name (make-js2-flow-type-annotated-node :pos pos :len len :name name :typespec type-spec))
+        (js2-node-add-children name left type-spec))))
   name)
 
 
@@ -288,3 +292,19 @@ variables and function arguments alike." (n i)
       (flow-js2-parse-type-alias)
     (funcall orig-fun)))
 (advice-add 'js2-parse-export :around #'flow-js2-parse-export)
+
+;;; Parse generic marker in function expression
+(defun flow-js2-parse-function-expr (orig-fun &optional async-p)
+  "Parse generic marker after `function' token in a function expression.
+
+Example:
+
+  function<T>(param: T): T {}
+
+This function parses the <T> immediately after `function'"
+  (let ((generic-type (js2-match-token js2-LT)))
+    (when generic-type
+      (js2-parse-flow-type-spec)
+      (js2-match-token js2-GT))
+    (funcall orig-fun async-p)))
+(advice-add 'js2-parse-function-expr :around #'flow-js2-parse-function-expr)

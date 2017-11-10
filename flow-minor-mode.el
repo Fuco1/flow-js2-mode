@@ -1,6 +1,9 @@
 (require 'rjsx-mode)
 (require 'flow-minor-mode)
 
+(js2-msg "flow.msg.no.generic.name"
+         "missing generic type name")
+
 (defgroup flow-js2-minor-mode nil
   "Support for flow annotations in JSX files."
   :group 'js2-mode)
@@ -304,9 +307,11 @@ Example:
 This function parses the <T> immediately after `function'"
   (let ((generic-type (js2-match-token js2-LT)))
     (when generic-type
-      (js2-parse-flow-type-spec)
+      (when (js2-must-match js2-NAME "flow.msg.no.generic.name")
+        (js2-create-name-node))
       (while (js2-match-token js2-COMMA)
-        (js2-parse-flow-type-spec))
+        (when (js2-must-match js2-NAME "flow.msg.no.generic.name")
+          (js2-create-name-node)))
       (js2-match-token js2-GT))
     (funcall orig-fun async-p)))
 (advice-add 'js2-parse-function-expr :around #'flow-js2-parse-function-expr)

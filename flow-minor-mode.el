@@ -1,6 +1,9 @@
 (require 'rjsx-mode)
 (require 'flow-minor-mode)
 
+(js2-msg "flow.msg.no.colon.in.type"
+         "missing ':' preceeding type definition")
+
 (js2-msg "flow.msg.no.generic.name"
          "missing generic type name")
 
@@ -42,7 +45,7 @@
     (when (and (or (not flow-js2-parse-object-literal-p)
                    flow-js2-parsing-type-alias-p)
                (or (and (js2-match-token js2-HOOK)
-                        (js2-match-token js2-COLON))
+                        (js2-must-match js2-COLON "flow.msg.no.colon.in.type"))
                    (js2-match-token js2-COLON)
                    (setq generic-type (js2-match-token js2-LT))))
       (let* ((pos (js2-node-pos name))

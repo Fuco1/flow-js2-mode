@@ -305,6 +305,8 @@ This function parses the <T> immediately after `function'"
   (let ((generic-type (js2-match-token js2-LT)))
     (when generic-type
       (js2-parse-flow-type-spec)
+      (while (js2-match-token js2-COMMA)
+        (js2-parse-flow-type-spec))
       (js2-match-token js2-GT))
     (funcall orig-fun async-p)))
 (advice-add 'js2-parse-function-expr :around #'flow-js2-parse-function-expr)

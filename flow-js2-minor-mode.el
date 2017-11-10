@@ -318,3 +318,6 @@ This function parses the <T> immediately after `function'"
       (js2-match-token js2-GT))
     (funcall orig-fun async-p)))
 (advice-add 'js2-parse-function-expr :around #'flow-js2-parse-function-expr)
+
+(provide 'flow-js2-minor-mode)
+;;; flow-js2-minor-mode ends here

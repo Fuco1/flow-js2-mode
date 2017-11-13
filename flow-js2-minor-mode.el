@@ -269,6 +269,11 @@ variables and function arguments alike." (n i)
                          :value assignment)))
              (js2-node-add-children prop key prop)
              prop))
+          ((eq tt js2-LB)
+           ;; parse the type after computed type if we are parsing a type
+           (when flow-js2-parsing-typespec-p
+             (when (js2-match-token js2-COLON)
+               (js2-parse-flow-type-spec))))
           (t
            (funcall orig-fun tt previous-token class-p)))))
 (advice-add 'js2-parse-named-prop :around #'flow-js2-parse-named-prop)

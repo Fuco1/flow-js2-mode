@@ -7,3 +7,13 @@ This project is heavily WIP at the moment, things might break and change.  Pleas
 # Usage
 
 Enable `flow-js2-minor-mode` in the `js2-mode` buffer.
+
+# List of features (incomplete)
+
+- [x] In object literals, `{foo: bar}` the type is parsed even thought it is not a type.  This breaks fontification and semantics of the object literals.  I don't see a way yet to distinguish if the `foo` is a key or a variable.
+- [x] `import type {Config} from 'types/Config'` does not work.
+- [x] Typing a destructured object does not work: `function send(res, {body, content}: Response)`
+- [x] Parse `function<T>` generic constructs.
+  - [x] Does not work with multiple generic arguments (separated by commas)
+  - [x] Does not work with typed generics such as `function <T: number>`
+- [x] key type specification in objects should work: `clients: { [client_id: string]: Client }`

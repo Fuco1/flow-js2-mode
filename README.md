@@ -6,7 +6,7 @@ This project is heavily WIP at the moment, things might break and change.  Pleas
 
 # Usage
 
-Enable `flow-js2-minor-mode` in the `js2-mode` buffer.
+Enable `flow-js2-mode` in the `js2-mode` buffer.
 
 # List of features (incomplete)
 

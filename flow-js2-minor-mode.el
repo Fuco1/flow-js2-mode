@@ -56,16 +56,16 @@
         (when generic-type
           (js2-match-token js2-GT))
         (js2-set-face pos (js2-node-end name) 'font-lock-variable-name-face 'record)
-        (setq name (make-js2-flow-type-annotated-node :pos pos :len len :name name :typespec type-spec))
+        (setq name (make-flow-js2-type-annotated-node :pos pos :len len :name name :typespec type-spec))
         (js2-node-add-children name left type-spec))))
   name)
 
 
 ;;; Node types
 
-(cl-defmacro js2-flow-define-node-type ((name (&rest fields) &rest constructor-args)
-                                     docstring
-                                     (&rest print-function-args) &body print-function-body)
+(cl-defmacro flow-js2-define-node-type ((name (&rest fields) &rest constructor-args)
+                                        docstring
+                                        (&rest print-function-args) &body print-function-body)
   (declare (indent defun))
   (let ((attributed-sym (intern (format "cl-struct-%s" name)))
         (printer-name (intern (format "print-%s" name))))
@@ -79,72 +79,72 @@
             (defun ,printer-name (,@print-function-args) ,@print-function-body)))))
 
 ;;; Type-annotated variables or other names --- const a: string
-(js2-flow-define-node-type (js2-flow-type-annotated-node (name typespec)
-                                                     (pos (js2-current-token-beg))
-                                                     (len (- js2-ts-cursor
-                                                             (js2-current-token-beg)))
-                                                     name
-                                                     typespec)
+(flow-js2-define-node-type (flow-js2-type-annotated-node (name typespec)
+                                                         (pos (js2-current-token-beg))
+                                                         (len (- js2-ts-cursor
+                                                                 (js2-current-token-beg)))
+                                                         name
+                                                         typespec)
   "Represent a name with a flow type annotation. This applies to
 variables and function arguments alike." (n i)
-  (let* ((tt (js2-node-type n)))
-    (js2-print-ast (js2-flow-type-annotated-node-name n) i)
-    (insert ": ")
-    (js2-print-ast (js2-flow-type-annotated-node-typespec n) 0)))
+(let* ((tt (js2-node-type n)))
+  (js2-print-ast (flow-js2-type-annotated-node-name n) i)
+  (insert ": ")
+  (js2-print-ast (flow-js2-type-annotated-node-typespec n) 0)))
 
 ;;; Combination types --- a | b or a & b
-(js2-flow-define-node-type (js2-flow-typespec-combination-node (op left right)
+(flow-js2-define-node-type (flow-js2-typespec-combination-node (op left right)
                                                                (pos (js2-current-token-beg))
                                                                (len (- js2-ts-cursor
                                                                        (js2-current-token-beg)))
                                                                op left right)
   "Represent a flow combination (union or intersection) type." (n i)
-  (js2-print-ast (js2-flow-typespec-combination-node-left n) 0)
+  (js2-print-ast (flow-js2-typespec-combination-node-left n) 0)
   (insert " ")
-  (insert (js2-flow-typespec-combination-node-op n))
+  (insert (flow-js2-typespec-combination-node-op n))
   (insert " ")
-  (js2-print-ast (js2-flow-typespec-combination-node-right n) 0))
+  (js2-print-ast (flow-js2-typespec-combination-node-right n) 0))
 
 ;;; Array type: a[]
-(js2-flow-define-node-type (js2-flow-typespec-array-node (typespec)
+(flow-js2-define-node-type (flow-js2-typespec-array-node (typespec)
                                                          (pos (js2-current-token-beg))
                                                          (len (- js2-ts-cursor
                                                                  (js2-current-token-beg)))
                                                          typespec)
   "Represent a flow array type." (n i)
-  (js2-print-ast (js2-flow-typespec-maybe-node-typespec n) 0)
+  (js2-print-ast (flow-js2-typespec-maybe-node-typespec n) 0)
   (insert "[]"))
 
 ;;; Maybe types: ?a
-(js2-flow-define-node-type (js2-flow-typespec-maybe-node (typespec)
+(flow-js2-define-node-type (flow-js2-typespec-maybe-node (typespec)
                                                          (pos (js2-current-token-beg))
                                                          (len (- js2-ts-cursor
                                                                  (js2-current-token-beg)))
                                                          typespec)
   "Represent a flow maybe type." (n i)
   (insert "?")
-  (js2-print-ast (js2-flow-typespec-maybe-node-typespec n) 0))
+  (js2-print-ast (flow-js2-typespec-maybe-node-typespec n) 0))
 
 ;;; Type alias definitions --- type Foo = Bar
-(js2-flow-define-node-type (js2-flow-type-alias-node (type-name typespec)
+(flow-js2-define-node-type (flow-js2-type-alias-node (type-name typespec)
                                                      (pos (len (- js2-ts-cursor pos)))
                                                      type-name typespec)
   "Represent a flow type alias definition." (n i)
   (insert "type ")
-  (js2-print-ast (js2-flow-type-alias-node-type-name n) 0)
+  (js2-print-ast (flow-js2-type-alias-node-type-name n) 0)
   (insert " = ")
-  (js2-print-ast (js2-flow-type-alias-node-typespec n) 0)
+  (js2-print-ast (flow-js2-type-alias-node-typespec n) 0)
   (insert ";\n"))
 
 ;;; Type-annotated class properties:
-(js2-flow-define-node-type (js2-flow-typed-class-property-node (property value)
+(flow-js2-define-node-type (flow-js2-typed-class-property-node (property value)
                                                                (pos (len (- js2-ts-cursor pos)))
                                                                property value)
   "Represent a type-annotated property with an optional assignment." (n i)
-  (js2-print-ast (js2-flow-typed-class-property-node-property n) i)
-  (when (js2-flow-typed-class-property-node-value n)
+  (js2-print-ast (flow-js2-typed-class-property-node-property n) i)
+  (when (flow-js2-typed-class-property-node-value n)
     (insert " = ")
-    (js2-print-ast (js2-flow-typed-class-property-node-value n) 0))
+    (js2-print-ast (flow-js2-typed-class-property-node-value n) 0))
   (insert ";"))
 
 
@@ -156,7 +156,7 @@ variables and function arguments alike." (n i)
     (cond ((= tt js2-HOOK)
            (let* ((type-spec (js2-parse-flow-leaf-type-spec))
                   (len (- (js2-node-end type-spec) pos))
-                  (maybe (make-js2-flow-typespec-maybe-node :pos pos :len len
+                  (maybe (make-flow-js2-typespec-maybe-node :pos pos :len len
                                                             :typespec type-spec)))
              (js2-node-add-children maybe maybe type-spec)
              maybe))
@@ -182,7 +182,7 @@ variables and function arguments alike." (n i)
   (let ((type-spec (js2-parse-flow-union-or-intersection-type-spec)))
     (when (js2-match-token js2-LB)
       (let ((array-node (js2-parse-array-literal (js2-current-token-beg))))
-        (setq type-spec (make-js2-flow-typespec-array-node
+        (setq type-spec (make-flow-js2-typespec-array-node
                          :pos (js2-node-pos type-spec)
                          :len (- (js2-node-end array-node) (js2-node-pos type-spec))
                          :typespec type-spec))))
@@ -195,7 +195,7 @@ variables and function arguments alike." (n i)
              do (let ((op (if (eq (js2-current-token-type) js2-BITOR) ?| ?&))
                       (left type-spec)
                       (right (js2-parse-flow-leaf-type-spec)))
-                  (setq type-spec (make-js2-flow-typespec-combination-node :op op
+                  (setq type-spec (make-flow-js2-typespec-combination-node :op op
                                                                            :left type-spec
                                                                            :right right))
                   (js2-node-add-children type-spec left right)))
@@ -204,8 +204,8 @@ variables and function arguments alike." (n i)
 ;;; A helper to ensure symbol definition lines up correctly:
 (defun flow-js2-define-symbol (orig-fun decl-type name &optional node ignore-not-in-block)
   (if (and (not (null node))
-           (js2-flow-type-annotated-node-p node))
-      (let ((name-node (js2-flow-type-annotated-node-name node)))
+           (flow-js2-type-annotated-node-p node))
+      (let ((name-node (flow-js2-type-annotated-node-name node)))
         (funcall orig-fun decl-type (js2-name-node-name name-node)
                  name-node
                  ignore-not-in-block))
@@ -232,15 +232,15 @@ variables and function arguments alike." (n i)
               (make-js2-error-node))
           (let* ((flow-js2-parsing-type-alias-p t)
                  (typespec (js2-parse-flow-type-spec))
-                 (alias (make-js2-flow-type-alias-node :pos pos
+                 (alias (make-flow-js2-type-alias-node :pos pos
                                                        :type-name name :typespec typespec)))
             (js2-node-add-children typespec name alias)
             alias))))))
 
 (defun flow-js2-record-name-node (orig-fun node)
   "Support registering an (optionally flow-typed) name node as a regular name node."
-  (if (js2-flow-type-annotated-node-p node)
-      (funcall orig-fun (js2-flow-type-annotated-node-name node))
+  (if (flow-js2-type-annotated-node-p node)
+      (funcall orig-fun (flow-js2-type-annotated-node-name node))
     (funcall orig-fun node)))
 (advice-add 'js2-record-name-node :around #'flow-js2-record-name-node)
 
@@ -263,7 +263,7 @@ variables and function arguments alike." (n i)
            (funcall orig-fun tt previous-token class-p))
           ((js2-match-token js2-ASSIGN)
            (let* ((assignment (js2-parse-assign-expr))
-                  (prop (make-js2-flow-typed-class-property-node
+                  (prop (make-flow-js2-typed-class-property-node
                          :pos pos
                          :property key
                          :value assignment)))
@@ -283,7 +283,7 @@ variables and function arguments alike." (n i)
   (funcall orig-fun function-type fn-node pos)
   (when (js2-match-token js2-COLON)
     (let* ((typespec (js2-parse-flow-type-spec))
-           (type-annotation (make-js2-flow-type-annotated-node :pos pos
+           (type-annotation (make-flow-js2-type-annotated-node :pos pos
                                                                :name fn-node
                                                                :typespec typespec)))
       (js2-node-add-children fn-node type-annotation typespec)

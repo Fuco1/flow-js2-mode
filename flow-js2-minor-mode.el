@@ -1,3 +1,4 @@
+(require 'js2-mode)
 (require 'flow-minor-mode)
 
 (js2-msg "flow.msg.no.colon.in.type"

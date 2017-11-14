@@ -11,6 +11,9 @@
   "Support for flow annotations in JSX files."
   :group 'js2-mode)
 
+(defconst flow-js2-primitive-types '("boolean" "number" "string" "null" "void" "any" "mixed")
+  "List of primitive types to be added to `js2-additional-externs'.")
+
 ;;;###autoload
 (define-minor-mode flow-js2-minor-mode
   "Minor mode for editing JS files with flow type annotations."
@@ -18,8 +21,32 @@
   :group 'flow-js2-minor-mode
 
   ;; Register the primitive types as external identifiers:
-  (dolist (kw '("boolean" "number" "string" "null" "void" "any" "mixed"))
-    (add-to-list 'js2-additional-externs kw)))
+  (if flow-js2-minor-mode
+      (progn
+        (dolist (kw flow-js2-primitive-types)
+          (add-to-list 'js2-additional-externs kw))
+        (advice-add 'js2-create-name-node :around #'flow-js2-create-name-node)
+        (advice-add 'js2-define-symbol :around #'flow-js2-define-symbol)
+        (advice-add 'js2-parse-name-or-label :around #'flow-js2-parse-name-or-label)
+        (advice-add 'js2-record-name-node :around #'flow-js2-record-name-node)
+        (advice-add 'js2-parse-object-literal :around #'flow-js2-parse-object-literal)
+        (advice-add 'js2-parse-named-prop :around #'flow-js2-parse-named-prop)
+        (advice-add 'js2-parse-function-params :around #'flow-js2-parse-function-params)
+        (advice-add 'js2-parse-import-clause :around #'flow-js2-parse-import-clause)
+        (advice-add 'js2-parse-export :around #'flow-js2-parse-export)
+        (advice-add 'js2-parse-function-expr :around #'flow-js2-parse-function-expr))
+    (dolist (kw flow-js2-primitive-types)
+      (setq js2-additional-externs (delete kw js2-additional-externs)))
+    (advice-remove 'js2-create-name-node #'flow-js2-create-name-node)
+    (advice-remove 'js2-define-symbol #'flow-js2-define-symbol)
+    (advice-remove 'js2-parse-name-or-label #'flow-js2-parse-name-or-label)
+    (advice-remove 'js2-record-name-node #'flow-js2-record-name-node)
+    (advice-remove 'js2-parse-object-literal #'flow-js2-parse-object-literal)
+    (advice-remove 'js2-parse-named-prop #'flow-js2-parse-named-prop)
+    (advice-remove 'js2-parse-function-params #'flow-js2-parse-function-params)
+    (advice-remove 'js2-parse-import-clause #'flow-js2-parse-import-clause)
+    (advice-remove 'js2-parse-export #'flow-js2-parse-export)
+    (advice-remove 'js2-parse-function-expr #'flow-js2-parse-function-expr)))
 
 (defun activate-flow-js2-minor-mode ()
   (when (and (flow-minor-tag-present-p)
@@ -36,7 +63,6 @@
         (apply 'flow-js2-do-create-name-node name args)
       name)))
 
-(advice-add 'js2-create-name-node :around #'flow-js2-create-name-node)
 
 (add-hook 'js2-mode-hook 'activate-flow-js2-minor-mode)
 
@@ -211,14 +237,11 @@ variables and function arguments alike." (n i)
                  ignore-not-in-block))
     (funcall orig-fun decl-type name node ignore-not-in-block)))
 
-(advice-add 'js2-define-symbol :around #'flow-js2-define-symbol)
-
 ;;; Parse "type" (it gets interpreted as a name):
 (defun flow-js2-parse-name-or-label (orig-fun)
   (if (string-equal (js2-current-token-string) "type")
       (flow-js2-parse-type-alias)
     (funcall orig-fun)))
-(advice-add 'js2-parse-name-or-label :around #'flow-js2-parse-name-or-label)
 
 (defvar flow-js2-parsing-type-alias-p nil)
 (defun flow-js2-parse-type-alias ()
@@ -242,7 +265,6 @@ variables and function arguments alike." (n i)
   (if (flow-js2-type-annotated-node-p node)
       (funcall orig-fun (flow-js2-type-annotated-node-name node))
     (funcall orig-fun node)))
-(advice-add 'js2-record-name-node :around #'flow-js2-record-name-node)
 
 ;;; Parse class property syntax:
 (defvar flow-js2-parse-object-literal-p nil)
@@ -254,7 +276,6 @@ variables and function arguments alike." (n i)
           (js2-node-add-children object-literal typespec)
           object-literal)
       object-literal)))
-(advice-add 'js2-parse-object-literal :around #'flow-js2-parse-object-literal)
 
 (defun flow-js2-parse-named-prop (orig-fun tt previous-token &optional class-p)
   (let ((key (js2-parse-prop-name tt))
@@ -276,7 +297,6 @@ variables and function arguments alike." (n i)
                (js2-parse-flow-type-spec))))
           (t
            (funcall orig-fun tt previous-token class-p)))))
-(advice-add 'js2-parse-named-prop :around #'flow-js2-parse-named-prop)
 
 ;;; Parse functions with return type annotations:
 (defun flow-js2-parse-function-params (orig-fun function-type fn-node pos)
@@ -288,21 +308,18 @@ variables and function arguments alike." (n i)
                                                                :typespec typespec)))
       (js2-node-add-children fn-node type-annotation typespec)
       type-annotation)))
-(advice-add 'js2-parse-function-params :around #'flow-js2-parse-function-params)
 
 ;;; Parse `import type' nodes
 (defun flow-js2-parse-import-clause (orig-fun)
   (if (js2-match-contextual-kwd "type")
       (funcall orig-fun)
     (funcall orig-fun)))
-(advice-add 'js2-parse-import-clause :around #'flow-js2-parse-import-clause)
 
 ;;; Parse `export type' nodes
 (defun flow-js2-parse-export (orig-fun)
   (if (js2-match-contextual-kwd "type")
       (flow-js2-parse-type-alias)
     (funcall orig-fun)))
-(advice-add 'js2-parse-export :around #'flow-js2-parse-export)
 
 ;;; Parse generic marker in function expression
 (defun flow-js2-parse-function-expr (orig-fun &optional async-p)
@@ -322,7 +339,6 @@ This function parses the <T> immediately after `function'"
           (js2-create-name-node)))
       (js2-match-token js2-GT))
     (funcall orig-fun async-p)))
-(advice-add 'js2-parse-function-expr :around #'flow-js2-parse-function-expr)
 
 (provide 'flow-js2-minor-mode)
 ;;; flow-js2-minor-mode ends here

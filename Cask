@@ -4,6 +4,8 @@
 (package "flow-js2-mode" "0.1.0"
          "Support for flow for js2-mode.")
 
+(files "flow-js2-mode.el")
+
 (depends-on "js2-mode")
 (depends-on "flow-minor-mode")
 

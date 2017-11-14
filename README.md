@@ -17,3 +17,9 @@ Enable `flow-js2-minor-mode` in the `js2-mode` buffer.
   - [x] Does not work with multiple generic arguments (separated by commas)
   - [x] Does not work with typed generics such as `function <T: number>`
 - [x] key type specification in objects should work: `clients: { [client_id: string]: Client }`
+
+# Acknowledgements
+
+The work was started by @antifuchs in [this fork](https://github.com/antifuchs/rjsx-mode) and expanded by @Fuco1 in [this pull request](https://github.com/antifuchs/rjsx-mode/pull/1).  It was decided to move this into a separate pacakge as there was no direct relation with `rjsx-mode`.
+
+Built on top of the powerful features of `js2-mode`.

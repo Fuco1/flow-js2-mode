@@ -7,7 +7,7 @@
 (js2-msg "flow.msg.no.generic.name"
          "missing generic type name")
 
-(defgroup flow-js2-minor-mode nil
+(defgroup flow-js2-mode nil
   "Support for flow annotations in JSX files."
   :group 'js2-mode)
 
@@ -15,13 +15,13 @@
   "List of primitive types to be added to `js2-additional-externs'.")
 
 ;;;###autoload
-(define-minor-mode flow-js2-minor-mode
+(define-minor-mode flow-js2-mode
   "Minor mode for editing JS files with flow type annotations."
   :lighter ":FLOW"
-  :group 'flow-js2-minor-mode
+  :group 'flow-js2-mode
 
   ;; Register the primitive types as external identifiers:
-  (if flow-js2-minor-mode
+  (if flow-js2-mode
       (progn
         (dolist (kw flow-js2-primitive-types)
           (add-to-list 'js2-additional-externs kw))
@@ -48,23 +48,23 @@
     (advice-remove 'js2-parse-export #'flow-js2-parse-export)
     (advice-remove 'js2-parse-function-expr #'flow-js2-parse-function-expr)))
 
-(defun activate-flow-js2-minor-mode ()
+(defun activate-flow-js2-mode ()
   (when (and (flow-minor-tag-present-p)
              ;; (flow-configured-p)
              )
-    (flow-js2-minor-mode +1)))
+    (flow-js2-mode +1)))
 
 (defvar flow-js2-parsing-typespec-p nil)
 (defun flow-js2-create-name-node (orig-fun &rest args)
   (let ((name (apply orig-fun args)))
-    (if (and flow-js2-minor-mode
+    (if (and flow-js2-mode
              (or (not flow-js2-parsing-typespec-p)
                  flow-js2-parsing-type-alias-p))
         (apply 'flow-js2-do-create-name-node name args)
       name)))
 
 
-(add-hook 'js2-mode-hook 'activate-flow-js2-minor-mode)
+(add-hook 'js2-mode-hook 'activate-flow-js2-mode)
 
 (defun flow-js2-do-create-name-node (name &optional check-activation-p token string)
   (let (generic-type)
@@ -340,5 +340,5 @@ This function parses the <T> immediately after `function'"
       (js2-match-token js2-GT))
     (funcall orig-fun async-p)))
 
-(provide 'flow-js2-minor-mode)
-;;; flow-js2-minor-mode ends here
+(provide 'flow-js2-mode)
+;;; flow-js2-mode ends here

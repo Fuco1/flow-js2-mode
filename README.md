@@ -2,6 +2,8 @@
 
 This package adds support for [Flow](https://flow.org/), a static typechecking extension for javascript, to [js2-mode](https://github.com/mooz/js2-mode), a popular javascript editing mode for Emacs.
 
+It extends the `js2-mode` parser to understand Flow syntax and exposes it in its AST which you can use to build your own refactoring tools.  This understanding of syntax also allows us to add proper syntax highlighting.
+
 This project is heavily WIP at the moment, things might break and change.  Please report all the issues, even minor ones so we can polish this as soon as possible.
 
 # Usage
@@ -17,6 +19,10 @@ Enable `flow-js2-mode` in the `js2-mode` buffer.
   - [x] Does not work with multiple generic arguments (separated by commas)
   - [x] Does not work with typed generics such as `function <T: number>`
 - [x] key type specification in objects should work: `clients: { [client_id: string]: Client }`
+
+# Related projects
+
+The [flow-minor-mode](https://github.com/an-sh/flow-minor-mode) project integrates flow features such as navigation to definition, eldoc support for printing types of expressions at point and similar into Emacs.  It is best to use it alongside this package.  In fact, it already is a dependency so you will get it automatically when you install this package.
 
 # Acknowledgements
 

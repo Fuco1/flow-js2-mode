@@ -19,6 +19,12 @@ Enable `flow-js2-mode` in the `js2-mode` buffer.
   - [x] Does not work with multiple generic arguments (separated by commas)
   - [x] Does not work with typed generics such as `function <T: number>`
 - [x] key type specification in objects should work: `clients: { [client_id: string]: Client }`
+- [ ] function types
+  - [x] function types with unnamed arguments
+  - [ ] function types with named arguments
+  - [ ] function types in `const/var/let` assignments (todo: is this valid flow syntax?)
+- [ ] `declare module` syntax
+- [ ] `declare class` syntax
 
 # Related projects
 

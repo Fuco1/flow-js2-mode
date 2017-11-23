@@ -6,6 +6,7 @@
 
 (files "flow-js2-mode.el")
 
+(depends-on "emacs" "25.1")
 (depends-on "js2-mode")
 (depends-on "flow-minor-mode")
 

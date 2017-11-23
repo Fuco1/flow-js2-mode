@@ -70,8 +70,10 @@
   (let (generic-type)
     (when (and (or (not flow-js2-parse-object-literal-p)
                    flow-js2-parsing-type-alias-p)
-               (or (and (js2-match-token js2-HOOK)
-                        (js2-must-match js2-COLON "flow.msg.no.colon.in.type"))
+               (or (when (js2-match-token js2-HOOK)
+                     (if (js2-match-token js2-COLON) t
+                       (js2-unget-token)
+                       nil))
                    (js2-match-token js2-COLON)
                    (setq generic-type (js2-match-token js2-LT))))
       (let* ((pos (js2-node-pos name))

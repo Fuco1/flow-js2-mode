@@ -184,9 +184,9 @@ variables and function arguments alike." (n i)
     (cond ((= tt js2-HOOK)
            (let* ((type-spec (js2-parse-flow-leaf-type-spec))
                   (len (- (js2-node-end type-spec) pos))
-                  (maybe (make-flow-js2-typespec-maybe-node :pos pos :len len
-                                                            :typespec type-spec)))
-             (js2-node-add-children maybe maybe type-spec)
+                  (maybe (make-flow-js2-typespec-maybe-node
+                          :pos pos :len len :typespec type-spec)))
+             (js2-node-add-children maybe type-spec)
              maybe))
           ((= tt js2-LP)
            (js2-parse-function-internal 'FUNCTION_ARROW (js2-current-token-beg) nil))

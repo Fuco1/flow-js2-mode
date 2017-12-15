@@ -7,6 +7,9 @@
 (js2-msg "flow.msg.no.generic.name"
          "missing generic type name")
 
+(js2-msg "flow.msg.no.type.after.opaque"
+         "missing `type' keyword after `opaque'")
+
 (defgroup flow-js2-mode nil
   "Support for flow annotations in JSX files."
   :group 'js2-mode)
@@ -84,6 +87,7 @@
         (when generic-type
           (js2-match-token js2-GT))
         (js2-set-face pos (js2-node-end name) 'font-lock-variable-name-face 'record)
+        (js2-set-face (js2-node-pos type-spec) (js2-node-end type-spec) 'font-lock-type-face 'record)
         (setq name (make-flow-js2-type-annotated-node :pos pos :len len :name name :typespec type-spec))
         (js2-node-add-children name left type-spec))))
   name)
@@ -163,6 +167,14 @@ variables and function arguments alike." (n i)
   (insert " = ")
   (js2-print-ast (flow-js2-type-alias-node-typespec n) 0)
   (insert ";\n"))
+
+;;; Export node
+(flow-js2-define-node-type (flow-js2-export-type-node (type-node)
+                                                      (pos (len (- js2-ts-cursor pos)))
+                                                      type-node)
+  "Represent a flow export type definition." (n i)
+  (insert "export ")
+  (js2-print-ast (flow-js2-export-type-node-type-node n) 0))
 
 ;;; Type-annotated class properties:
 (flow-js2-define-node-type (flow-js2-typed-class-property-node (property value)
@@ -274,7 +286,20 @@ variables and function arguments alike." (n i)
 (defvar flow-js2-parse-object-literal-p nil)
 (defun flow-js2-parse-object-literal (orig-fun)
   (let* ((flow-js2-parse-object-literal-p t)
-         (object-literal (funcall orig-fun)))
+         (object-literal (funcall orig-fun)
+          ;; (progn
+          ;;   ;; optionally parse | as sealed object declaration
+          ;;   (when flow-js2-parsing-typespec-p
+          ;;     (js2-match-token js2-BITOR))
+          ;;   (let ((js2-recover-from-parse-errors t))
+          ;;     (prog1 (funcall orig-fun)
+          ;;       ;; we might have failed to match the |}, so try to match
+          ;;       ;; the pipe and then the closing bracket
+          ;;       (when (and flow-js2-parsing-typespec-p
+          ;;                  (equal (car (caar js2-parsed-errors)) "msg.no.brace.prop"))
+          ;;         (js2-match-token js2-BITOR)
+          ;;         (js2-must-match js2-RC "msg.no.brace.prop")))))
+          ))
     (if (js2-match-token js2-COLON)
         (let* ((typespec (js2-parse-flow-type-spec)))
           (js2-node-add-children object-literal typespec)
@@ -319,11 +344,20 @@ variables and function arguments alike." (n i)
       (funcall orig-fun)
     (funcall orig-fun)))
 
-;;; Parse `export type' nodes
+;;; Parse `export [opaque] type' nodes
 (defun flow-js2-parse-export (orig-fun)
-  (if (js2-match-contextual-kwd "type")
-      (flow-js2-parse-type-alias)
-    (funcall orig-fun)))
+  (let ((pos (js2-current-token-beg)))
+    (if (js2-match-contextual-kwd "opaque")
+        (if (js2-match-contextual-kwd "type")
+            (flow-js2-parse-type-alias)
+          (js2-report-error "flow.msg.no.type.after.opaque")
+          (make-js2-error-node))
+      (if (js2-match-contextual-kwd "type")
+          (let* ((type-node (flow-js2-parse-type-alias))
+                 (export-node (make-flow-js2-export-type-node :pos pos :type-node type-node)))
+            (js2-node-add-children export-node type-node)
+            export-node)
+        (funcall orig-fun)))))
 
 ;;; Parse generic marker in function expression
 (defun flow-js2-parse-function-expr (orig-fun &optional async-p)

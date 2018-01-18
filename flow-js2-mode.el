@@ -7,6 +7,12 @@
 (js2-msg "flow.msg.no.generic.name"
          "missing generic type name")
 
+(js2-msg "flow.msg.no.generic.closing"
+         "missing generic closing token >")
+
+(js2-msg "flow.msg.no.type.after.opaque"
+         "missing `type' keyword after `opaque'")
+
 (defgroup flow-js2-mode nil
   "Support for flow annotations in JSX files."
   :group 'js2-mode)
@@ -84,8 +90,11 @@
         (when generic-type
           (js2-match-token js2-GT))
         (js2-set-face pos (js2-node-end name) 'font-lock-variable-name-face 'record)
-        (setq name (make-flow-js2-type-annotated-node :pos pos :len len :name name :typespec type-spec))
-        (js2-node-add-children name left type-spec))))
+        (js2-set-face (js2-node-pos type-spec) (js2-node-end type-spec) 'font-lock-type-face 'record)
+        (if generic-type
+            (js2-node-add-children name type-spec)
+          (setq name (make-flow-js2-type-annotated-node :pos pos :len len :name name :typespec type-spec))
+          (js2-node-add-children name left type-spec)))))
   name)
 
 
@@ -216,6 +225,13 @@ variables and function arguments alike." (n i)
                          :pos (js2-node-pos type-spec)
                          :len (- (js2-node-end array-node) (js2-node-pos type-spec))
                          :typespec type-spec))))
+    (when (js2-match-token js2-LT)
+      (when (js2-must-match js2-NAME "flow.msg.no.generic.name")
+        (js2-create-name-node))
+      (while (js2-match-token js2-COMMA)
+        (when (js2-must-match js2-NAME "flow.msg.no.generic.name")
+          (js2-create-name-node)))
+      (js2-must-match js2-GT "flow.msg.no.generic.closing"))
     (js2-set-face (js2-node-pos type-spec) (js2-node-end type-spec) 'font-lock-type-face 'record)
     type-spec))
 

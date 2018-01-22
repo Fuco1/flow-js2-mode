@@ -39,6 +39,7 @@
         (advice-add 'js2-parse-named-prop :around #'flow-js2-parse-named-prop)
         (advice-add 'js2-parse-function-params :around #'flow-js2-parse-function-params)
         (advice-add 'js2-parse-import-clause :around #'flow-js2-parse-import-clause)
+        (advice-add 'js2-maybe-parse-export-binding :around #'flow-js2-maybe-parse-export-binding)
         (advice-add 'js2-parse-export :around #'flow-js2-parse-export)
         (advice-add 'js2-parse-function-expr :around #'flow-js2-parse-function-expr))
     (dolist (kw flow-js2-primitive-types)
@@ -51,6 +52,7 @@
     (advice-remove 'js2-parse-named-prop #'flow-js2-parse-named-prop)
     (advice-remove 'js2-parse-function-params #'flow-js2-parse-function-params)
     (advice-remove 'js2-parse-import-clause #'flow-js2-parse-import-clause)
+    (advice-remove 'js2-maybe-parse-export-binding #'flow-js2-maybe-parse-export-binding)
     (advice-remove 'js2-parse-export #'flow-js2-parse-export)
     (advice-remove 'js2-parse-function-expr #'flow-js2-parse-function-expr)))
 
@@ -334,6 +336,11 @@ variables and function arguments alike." (n i)
   (if (js2-match-contextual-kwd "type")
       (funcall orig-fun)
     (funcall orig-fun)))
+
+(defun flow-js2-maybe-parse-export-binding (orig-fun &optional import-p)
+  (if (js2-match-contextual-kwd "type")
+      (funcall orig-fun import-p)
+    (funcall orig-fun import-p)))
 
 ;;; Parse `export type' nodes
 (defun flow-js2-parse-export (orig-fun)

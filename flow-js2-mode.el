@@ -133,9 +133,9 @@ variables and function arguments alike." (n i)
 
 ;;; Combination types --- a | b or a & b
 (flow-js2-define-node-type (flow-js2-typespec-combination-node (op left right)
-                                                               (pos (js2-current-token-beg))
+                                                               (pos (js2-node-pos left))
                                                                (len (- js2-ts-cursor
-                                                                       (js2-current-token-beg)))
+                                                                       (js2-node-pos left)))
                                                                op left right)
   "Represent a flow combination (union or intersection) type." (n i)
   (js2-print-ast (flow-js2-typespec-combination-node-left n) 0)

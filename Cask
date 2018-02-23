@@ -2,7 +2,7 @@
 (source gnu)
 
 (package "flow-js2-mode" "0.1.0"
-         "Support for flow for js2-mode.")
+         "Support for flow annotations in js2-mode.")
 
 (files "flow-js2-mode.el")
 

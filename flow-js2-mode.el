@@ -1,3 +1,32 @@
+;;; flow-js2-mode.el --- Support for flow annotations in js2-mode -*- lexical-binding: t -*-
+
+;; Copyright (C) 2017 Andreas Fuchs
+;; Copyright (C) 2017-2018 Matúš Goljer
+
+;; Author: Matúš Goljer <matus.goljer@gmail.com>
+;; Maintainer: Matúš Goljer <matus.goljer@gmail.com>
+;; Version: 0.1.0
+;; Created: 28th May 2017
+;; Package-requires: ()
+;; Keywords: languages, extensions
+
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License
+;; as published by the Free Software Foundation; either version 3
+;; of the License, or (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;;; Code:
+
 (require 'js2-mode)
 (require 'flow-minor-mode)
 
@@ -14,7 +43,7 @@
          "missing `type' keyword after `opaque'")
 
 (defgroup flow-js2-mode nil
-  "Support for flow annotations in JSX files."
+  "Support for flow annotations in `js2-mode'."
   :group 'js2-mode)
 
 (defconst flow-js2-primitive-types '("boolean" "number" "string" "null" "void" "any" "mixed")
@@ -368,4 +397,4 @@ This function parses the <T> immediately after `function'"
     (funcall orig-fun async-p)))
 
 (provide 'flow-js2-mode)
-;;; flow-js2-mode ends here
+;;; flow-js2-mode.el ends here

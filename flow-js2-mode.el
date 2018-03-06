@@ -140,7 +140,7 @@
     `(progn
        (cl-defstruct (,name (:include js2-node) (:constructor nil)
                             (:constructor ,(intern (format "make-%s" name)) (&key ,@constructor-args)))
-         docstring
+         ,docstring
          ,@fields)
        (put ',attributed-sym 'js2-visitor 'js2-visit-none)
        (put ',attributed-sym 'js2-printer

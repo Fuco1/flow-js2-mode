@@ -7,7 +7,7 @@
 ;; Maintainer: Matúš Goljer <matus.goljer@gmail.com>
 ;; Version: 0.1.0
 ;; Created: 28th May 2017
-;; Package-requires: ()
+;; Package-requires: ((flow-minor-mode "0") (js2-mode "0") (emacs "25.1"))
 ;; Keywords: languages, extensions
 
 ;; This program is free software; you can redistribute it and/or

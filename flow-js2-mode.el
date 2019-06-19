@@ -342,22 +342,23 @@ variables and function arguments alike." (n i)
              prop))
           ((eq tt js2-LB)
            ;; parse the type after computed type if we are parsing a type
-           (when flow-js2-parsing-typespec-p
-             (when (js2-match-token js2-COLON)
-               (js2-parse-flow-type-spec))))
+           (if flow-js2-parsing-typespec-p
+               (when (js2-match-token js2-COLON)
+                 (js2-parse-flow-type-spec))
+             key))
           (t
            (funcall orig-fun tt previous-token class-p)))))
 
 ;;; Parse functions with return type annotations:
 (defun flow-js2-parse-function-params (orig-fun function-type fn-node pos)
-  (funcall orig-fun function-type fn-node pos)
-  (when (js2-match-token js2-COLON)
-    (let* ((typespec (js2-parse-flow-type-spec))
-           (type-annotation (make-flow-js2-type-annotated-node :pos pos
-                                                               :name fn-node
-                                                               :typespec typespec)))
-      (js2-node-add-children fn-node type-annotation typespec)
-      type-annotation)))
+  (let ((orig-result (funcall orig-fun function-type fn-node pos)))
+    (when (js2-match-token js2-COLON)
+      (let* ((typespec (js2-parse-flow-type-spec))
+             (type-annotation (make-flow-js2-type-annotated-node :pos pos
+                                                                 :name fn-node
+                                                                 :typespec typespec)))
+        (js2-node-add-children fn-node type-annotation)
+        ))))
 
 ;;; Parse `import type' nodes
 (defun flow-js2-parse-import-clause (orig-fun)

@@ -142,8 +142,8 @@
                             (:constructor ,(intern (format "make-%s" name)) (&key ,@constructor-args)))
          ,docstring
          ,@fields)
-       (put ',attributed-sym 'js2-visitor 'js2-visit-none)
-       (put ',attributed-sym 'js2-printer
+       (js2--struct-put ',name 'js2-visitor 'js2-visit-none)
+       (js2--struct-put ',name 'js2-printer
             (defun ,printer-name (,@print-function-args) ,@print-function-body)))))
 
 ;;; Type-annotated variables or other names --- const a: string

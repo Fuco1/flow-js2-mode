@@ -65,12 +65,11 @@
         (advice-add 'js2-parse-name-or-label :around #'flow-js2-parse-name-or-label)
         (advice-add 'js2-record-name-node :around #'flow-js2-record-name-node)
         (advice-add 'js2-parse-object-literal :around #'flow-js2-parse-object-literal)
-        (advice-add 'js2-parse-named-prop :around #'flow-js2-parse-named-prop)
         (advice-add 'js2-parse-function-params :around #'flow-js2-parse-function-params)
         (advice-add 'js2-parse-import-clause :around #'flow-js2-parse-import-clause)
         (advice-add 'js2-maybe-parse-export-binding :around #'flow-js2-maybe-parse-export-binding)
         (advice-add 'js2-parse-export :around #'flow-js2-parse-export)
-        (advice-add 'js2-parse-function-expr :around #'flow-js2-parse-function-expr))
+        (advice-add 'js2-parse-assign-expr :around #'flow-js2-parse-assign-expr))
     (dolist (kw flow-js2-primitive-types)
       (setq js2-additional-externs (delete kw js2-additional-externs)))
     (advice-remove 'js2-create-name-node #'flow-js2-create-name-node)
@@ -78,12 +77,11 @@
     (advice-remove 'js2-parse-name-or-label #'flow-js2-parse-name-or-label)
     (advice-remove 'js2-record-name-node #'flow-js2-record-name-node)
     (advice-remove 'js2-parse-object-literal #'flow-js2-parse-object-literal)
-    (advice-remove 'js2-parse-named-prop #'flow-js2-parse-named-prop)
     (advice-remove 'js2-parse-function-params #'flow-js2-parse-function-params)
     (advice-remove 'js2-parse-import-clause #'flow-js2-parse-import-clause)
     (advice-remove 'js2-maybe-parse-export-binding #'flow-js2-maybe-parse-export-binding)
     (advice-remove 'js2-parse-export #'flow-js2-parse-export)
-    (advice-remove 'js2-parse-function-expr #'flow-js2-parse-function-expr)))
+    (advice-remove 'js2-parse-assign-expr #'flow-js2-parse-assign-expr)))
 
 (defun activate-flow-js2-mode ()
   (when (and (flow-minor-tag-present-p)
@@ -215,7 +213,6 @@ variables and function arguments alike." (n i)
     (js2-print-ast (flow-js2-typed-class-property-node-value n) 0))
   (insert ";"))
 
-
 ;;;; Parsing nodes:
 (defun js2-parse-flow-leaf-type-spec ()
   (let ((flow-js2-parsing-typespec-p t)
@@ -237,6 +234,7 @@ variables and function arguments alike." (n i)
           ((= tt js2-NUMBER)
            (make-js2-number-node))
           ((or (= tt js2-NULL)
+               (= tt js2-VOID)
                (= tt js2-TRUE)
                (= tt js2-FALSE))
            (make-js2-keyword-node :type tt))
@@ -327,28 +325,6 @@ variables and function arguments alike." (n i)
           object-literal)
       object-literal)))
 
-(defun flow-js2-parse-named-prop (orig-fun tt previous-token &optional class-p)
-  (let ((key (js2-parse-prop-name tt))
-        (pos (js2-current-token-beg)))
-    (when (js2-match-token js2-HOOK))
-    (cond ((not (null previous-token))
-           (funcall orig-fun tt previous-token class-p))
-          ((js2-match-token js2-ASSIGN)
-           (let* ((assignment (js2-parse-assign-expr))
-                  (prop (make-flow-js2-typed-class-property-node
-                         :pos pos
-                         :property key
-                         :value assignment)))
-             (js2-node-add-children prop key prop)
-             prop))
-          ((eq tt js2-LB)
-           ;; parse the type after computed type if we are parsing a type
-           (when flow-js2-parsing-typespec-p
-             (when (js2-match-token js2-COLON)
-               (js2-parse-flow-type-spec))))
-          (t
-           (funcall orig-fun tt previous-token class-p)))))
-
 ;;; Parse functions with return type annotations:
 (defun flow-js2-parse-function-params (orig-fun function-type fn-node pos)
   (funcall orig-fun function-type fn-node pos)
@@ -377,24 +353,25 @@ variables and function arguments alike." (n i)
       (flow-js2-parse-type-alias)
     (funcall orig-fun)))
 
-;;; Parse generic marker in function expression
-(defun flow-js2-parse-function-expr (orig-fun &optional async-p)
-  "Parse generic marker after `function' token in a function expression.
-
-Example:
-
-  function<T>(param: T): T {}
-
-This function parses the <T> immediately after `function'"
-  (let ((generic-type (js2-match-token js2-LT)))
+;;; Parse generic marker on paren expressions for arrow functions:
+(defun flow-js2-parse-assign-expr (orig-fun)
+  (let ((generic-type (js2-match-token js2-LT))
+        pos ts-state)
     (when generic-type
+      (setq pos (js2-current-token-beg))
+      (setq ts-state (make-js2-ts-state))
       (when (js2-must-match js2-NAME "flow.msg.no.generic.name")
+        (setq pos (js2-current-token-beg))
         (js2-create-name-node))
       (while (js2-match-token js2-COMMA)
         (when (js2-must-match js2-NAME "flow.msg.no.generic.name")
           (js2-create-name-node)))
-      (js2-match-token js2-GT))
-    (funcall orig-fun async-p)))
+      (js2-match-token js2-GT)
+      (js2-set-face pos (js2-current-token-beg) 'font-lock-type-face 'record)
+      (unless (js2-must-match js2-LP "msg.syntax")
+        (js2-ts-seek ts-state))
+      (js2-unget-token)))
+  (funcall orig-fun))
 
 (provide 'flow-js2-mode)
 ;;; flow-js2-mode.el ends here

@@ -69,6 +69,7 @@
         (advice-add 'js2-parse-import-clause :around #'flow-js2-parse-import-clause)
         (advice-add 'js2-maybe-parse-export-binding :around #'flow-js2-maybe-parse-export-binding)
         (advice-add 'js2-parse-export :around #'flow-js2-parse-export)
+        (advice-add 'js2-parse-function-expr :around #'flow-js2-parse-function-expr)
         (advice-add 'js2-parse-assign-expr :around #'flow-js2-parse-assign-expr))
     (dolist (kw flow-js2-primitive-types)
       (setq js2-additional-externs (delete kw js2-additional-externs)))
@@ -81,6 +82,7 @@
     (advice-remove 'js2-parse-import-clause #'flow-js2-parse-import-clause)
     (advice-remove 'js2-maybe-parse-export-binding #'flow-js2-maybe-parse-export-binding)
     (advice-remove 'js2-parse-export #'flow-js2-parse-export)
+    (advice-remove 'js2-parse-function-expr #'flow-js2-parse-function-expr)
     (advice-remove 'js2-parse-assign-expr #'flow-js2-parse-assign-expr)))
 
 (defun activate-flow-js2-mode ()
@@ -372,6 +374,25 @@ variables and function arguments alike." (n i)
         (js2-ts-seek ts-state))
       (js2-unget-token)))
   (funcall orig-fun))
+
+;;; Parse generic marker in function expression
+(defun flow-js2-parse-function-expr (orig-fun &optional async-p)
+  "Parse generic marker after `function' token in a function expression.
+
+Example:
+
+  function<T>(param: T): T {}
+
+This function parses the <T> immediately after `function'"
+  (let ((generic-type (js2-match-token js2-LT)))
+    (when generic-type
+      (when (js2-must-match js2-NAME "flow.msg.no.generic.name")
+        (js2-create-name-node))
+      (while (js2-match-token js2-COMMA)
+        (when (js2-must-match js2-NAME "flow.msg.no.generic.name")
+          (js2-create-name-node)))
+      (js2-match-token js2-GT))
+    (funcall orig-fun async-p)))
 
 (provide 'flow-js2-mode)
 ;;; flow-js2-mode.el ends here

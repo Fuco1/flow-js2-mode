@@ -1,3 +1,9 @@
+# UNMAINTAINED
+
+Typescript won.  If you still use flow on some legacy project, you can keep using this package but it is no longer developed or maintained.
+
+---
+
 # flow-js2-mode
 
 This package adds support for [Flow](https://flow.org/), a static typechecking extension for javascript, to [js2-mode](https://github.com/mooz/js2-mode), a popular javascript editing mode for Emacs.
